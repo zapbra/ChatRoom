@@ -51,6 +51,10 @@ namespace UserAuthentication.Models
                 new Role { Id = 3, RoleName = "guest"  },
                 new Role { Id = 4, RoleName = "viewer" }
                 );
+
+            modelBuilder.Entity<HashAlgorithm>().HasData(
+                new HashAlgorithm { Id = 1, AlgorithmName = "SHA256" }
+                );
         }
         public DbSet<User> Users { get; set; } = null!;
         public DbSet<UserLogin> UserLogins { get; set; } = null!;

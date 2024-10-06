@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using UserAuthentication.DTOs;
 using UserAuthentication.Models;
 using UserAuthentication.Security;
+using UserAuthentication.Utilities;
 
 namespace UserAuthentication.Controllers
 {
@@ -38,7 +39,7 @@ namespace UserAuthentication.Controllers
                 .ToListAsync();
         }
 
-        
+
 
         // GET: api/Users/5
         [HttpGet("{id}")]
@@ -60,7 +61,7 @@ namespace UserAuthentication.Controllers
         public async Task<ActionResult<User>> GetUserByUsername(string username)
         {
             var user = await _context.Users
-                .Where(u => u.UserLogin.Username == username)
+                .Where(u => u.UserLogin != null && u.UserLogin.Username  == username)
                 .SingleOrDefaultAsync();
 
             if (user == null)
@@ -71,6 +72,7 @@ namespace UserAuthentication.Controllers
 
             return user;
         }
+
 
 
         // PUT: api/Users/5
@@ -149,6 +151,18 @@ namespace UserAuthentication.Controllers
             return await _context.UserLogins.ToListAsync();
         }
 
+        // Used to get the current hashing algorithm id, mainly for user inserts
+        // The purpose of this function is if a specific hashing algorithm is used in multiple places
+        // this will hopefully be maintainable (over-engineered much)
+        private int GetHashingAlgorithmId()
+        {
+            return 1;
+        }
+
+
+
+
+
         // Post: api/Users/Userlogins
         [HttpPost("Userlogins")]
         public async Task<ActionResult<User>> CreateUser(UserLoginDto userDto)
@@ -180,6 +194,7 @@ namespace UserAuthentication.Controllers
                     PasswordHash = hashedPassword,
                     PasswordSalt = salt,
                     Email = userDto.Email,
+                    HashAlgorithmId = this.GetHashingAlgorithmId(),
                 };
 
 
@@ -200,27 +215,99 @@ namespace UserAuthentication.Controllers
                 _context.UserStates.Add(newUserState);
                 await _context.SaveChangesAsync();
 
+                var userCookieDict = new Dictionary<string, string>
+                {
+                    { "user_id", newUser.Id.ToString()},
+                    { "username", newUserLogin.Username},
+                    { "email", newUserLogin.Email},
+                    { "authenticated", newUserState.Authenticated.ToString() },
+                    { "auth_expiry_time", newUserState.ExpiryTime.ToString()},
+                    { "user_state_id", newUserState.StateUUID},
+                    { "is_email_validated", newUserLogin.EmailValidationStatus.IsValidated.ToString() ?? "false" },
+                    { "email_status_description", newUserLogin.EmailValidationStatus.StatusDescription ?? "Pending"},
+                };
+
+                CookieUtility.AddCookies(Response, userCookieDict);
+
                 await transcation.CommitAsync();
 
+
+
                 // returns the state of the insert
-                return CreatedAtAction(nameof(GetUserLogin), new { id = newUserLogin.Id }, newUserLogin);
-            } catch (Exception ex)
+                return CreatedAtAction(nameof(GetUser), new { id = newUser.Id }, newUser);
+            }
+            catch (Exception ex)
             {
                 await transcation.RollbackAsync();
 
                 _logger.LogError(ex, "An eror occured while creaing a new user");
                 return StatusCode(StatusCodes.Status500InternalServerError, "An error occured while creating the user: " + ex.Message);
             }
-            
+
 
         }
 
-        // GET: api/Users/Userlogin
-        [HttpGet("Userlogin")]
+        // POST: api/Users/
+        // UserLoginDto is passed either the email or username based on which the user
+        // decides to enter and queries for user that contains that username or email
+        [HttpPost("login")]
+        public async Task<ActionResult<User>> Login(UserLoginDto userDto)
+        {
+
+            try
+            {
+                // find user from database comparing the email and username based on the user entered field
+                var user = await _context.Users
+                    .FirstOrDefaultAsync(u => (u.UserLogin != null && u.UserLogin.Username == userDto.Username)
+                    || (u.UserLogin != null && u.UserLogin.Email == userDto.Email));
+
+                // make sure user was actually found
+                if (user == null)
+                {
+                    return NotFound("User not found");
+                }
+
+                // hash client pass with salt to compare to fetched user
+                var clientHashedPass = HashAlgorithmUtility.HashPassword($"{userDto.Password}{user?.UserLogin?.PasswordSalt ?? ""}");
+
+                // wrong password
+                if (clientHashedPass != user?.UserLogin?.PasswordHash)
+                {
+                    return Unauthorized("Invalid credentials");
+
+                }
+
+                // At this point, the user has entered the correct password and it can 
+                // cookies can be updated to reflect the login state
+                var userCookieDict = new Dictionary<string, string>
+                {
+                    { "user_id", user.Id.ToString()},
+                    { "username", user.UserLogin.Username},
+                    { "email", user.UserLogin.Email},
+                    { "authenticated", user.UserState.Authenticated.ToString() },
+                    { "auth_expiry_time", user.UserState.ExpiryTime.ToString()},
+                    { "user_state_id", user.UserState.StateUUID},
+                    { "is_email_validated", user.UserLogin.EmailValidationStatus.IsValidated.ToString() ?? "false" },
+                    { "email_status_description", user.UserLogin.EmailValidationStatus.StatusDescription ?? "Pending"},
+                };
+
+                CookieUtility.AddCookies(Response, userCookieDict);
+
+                return Ok(user);
+
+
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occured while logging in");
+                return StatusCode(StatusCodes.Status500InternalServerError);
+
+            }
+        }
 
 
         // GET: api/Users/Userlogin/5
-        [HttpGet("/Userlogin/{id}")]
+        [HttpGet("Userlogin/{id}")]
         public async Task<ActionResult<UserLogin>> GetUserLogin(long id)
         {
             var userLogin = await _context.UserLogins.FindAsync(id);

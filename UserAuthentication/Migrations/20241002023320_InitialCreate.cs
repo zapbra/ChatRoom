@@ -276,7 +276,8 @@ namespace UserAuthentication.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_user_state_user_id",
                 table: "user_state",
-                column: "user_id");
+                column: "user_id",
+                unique: true);
         }
 
         /// <inheritdoc />

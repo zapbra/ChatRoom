@@ -12,8 +12,8 @@ using UserAuthentication.Models;
 namespace UserAuthentication.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20241001021213_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20241003234225_migration1")]
+    partial class migration1
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -114,6 +114,13 @@ namespace UserAuthentication.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("hashing_algorithms");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1L,
+                            AlgorithmName = "SHA256"
+                        });
                 });
 
             modelBuilder.Entity("UserAuthentication.Models.Permission", b =>
@@ -330,7 +337,8 @@ namespace UserAuthentication.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("UserId")
+                        .IsUnique();
 
                     b.ToTable("user_state");
                 });
@@ -410,8 +418,8 @@ namespace UserAuthentication.Migrations
             modelBuilder.Entity("UserAuthentication.Models.UserState", b =>
                 {
                     b.HasOne("UserAuthentication.Models.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
+                        .WithOne("UserState")
+                        .HasForeignKey("UserAuthentication.Models.UserState", "UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -440,6 +448,9 @@ namespace UserAuthentication.Migrations
                     b.Navigation("UserLogin");
 
                     b.Navigation("UserLoginDataExternal");
+
+                    b.Navigation("UserState")
+                        .IsRequired();
                 });
 #pragma warning restore 612, 618
         }

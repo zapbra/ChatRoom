@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using UserAuthentication.Models;
@@ -11,9 +12,11 @@ using UserAuthentication.Models;
 namespace UserAuthentication.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20241002023320_InitialCreate")]
+    partial class InitialCreate
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -111,13 +114,6 @@ namespace UserAuthentication.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("hashing_algorithms");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1L,
-                            AlgorithmName = "SHA256"
-                        });
                 });
 
             modelBuilder.Entity("UserAuthentication.Models.Permission", b =>
