@@ -9,7 +9,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace UserAuthentication.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class Initialize : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -213,6 +213,11 @@ namespace UserAuthentication.Migrations
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
                 });
+
+            migrationBuilder.InsertData(
+                table: "hashing_algorithms",
+                columns: new[] { "id", "algorithm_name" },
+                values: new object[] { 1L, "SHA256" });
 
             migrationBuilder.InsertData(
                 table: "user_roles",

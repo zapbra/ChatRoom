@@ -12,8 +12,8 @@ using UserAuthentication.Models;
 namespace UserAuthentication.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20241003234225_migration1")]
-    partial class migration1
+    [Migration("20241007002144_Initialize")]
+    partial class Initialize
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

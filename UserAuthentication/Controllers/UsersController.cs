@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using UserAuthentication.DataService;
 using UserAuthentication.DTOs;
 using UserAuthentication.Models;
 using UserAuthentication.Security;
@@ -171,6 +173,26 @@ namespace UserAuthentication.Controllers
             using var transcation = await _context.Database.BeginTransactionAsync();
             try
             {
+                StateMessage[] validationMessages = new StateMessage[]
+                {
+                    UserValidationService.IsEmailValid(userDto.Email),
+                    UserValidationService.IsUsernameValid(userDto.Username),
+                    UserValidationService.IsPasswordValid(userDto.Password)
+                };
+           
+
+                if (!validationMessages.All(message => message.IsValid))
+                {
+                    string errorMessage = UserValidationService.ConcatErrorsToString(validationMessages);
+                    _logger.LogError(errorMessage);
+                    return BadRequest(new
+                    {
+                        Status = 400,
+                        Message = "User validation failed",
+                        Details = errorMessage
+                    });
+                }
+
                 // create new user, only requires role id
                 User newUser = new User
                 {
@@ -240,8 +262,15 @@ namespace UserAuthentication.Controllers
             {
                 await transcation.RollbackAsync();
 
-                _logger.LogError(ex, "An eror occured while creaing a new user");
-                return StatusCode(StatusCodes.Status500InternalServerError, "An error occured while creating the user: " + ex.Message);
+                _logger.LogError(ex, "An error occured while creating a new user");
+
+
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    Status = 500,
+                    Message = "An error occured while creating the user",
+                    Details = ex.Message
+                });
             }
 
 
