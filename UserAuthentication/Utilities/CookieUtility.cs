@@ -10,10 +10,11 @@ namespace UserAuthentication.Utilities
             {
                 var cookieOptions = new CookieOptions
                 {
-                    Expires = expireTime.HasValue ? DateTime.Now.AddMinutes(expireTime.Value) : DateTime.Now.AddDays(14),
+                    Expires = expireTime.HasValue ? DateTime.UtcNow.AddDays(expireTime.Value) : DateTime.UtcNow.AddDays(14),
                     HttpOnly = false,
                     Secure = true,
-                    SameSite = SameSiteMode.None
+                    SameSite = SameSiteMode.None,
+                    IsEssential = true,
                 };
 
                 response.Cookies.Append(cookie.Key, cookie.Value, cookieOptions);
@@ -21,3 +22,4 @@ namespace UserAuthentication.Utilities
         }
     }
 }
+             

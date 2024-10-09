@@ -5,10 +5,8 @@ namespace UserAuthentication.Hubs
 {
     public class ChatHub : Hub
     {
-        private readonly SharedDb _shared;
-
-        public ChatHub(SharedDb shared) => _shared = shared;
-
-
+        public async Task NewMessage(string message) {
+            await Clients.All.SendAsync("messageReceived", message);
+        }
     }
 }

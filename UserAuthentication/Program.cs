@@ -1,13 +1,17 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
+using UserAuthentication.Hubs;
 using UserAuthentication.Models;
+
+
 
 var builder = WebApplication.CreateBuilder(args);
 
 var configuration = builder.Configuration;
 
-
+builder.Services.AddSignalR();
 // Add services to the container.
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
@@ -49,6 +53,7 @@ app.UseHttpsRedirection();
 //app.MapIdentityApi<IdentityUser>();
 app.MapControllers();
 
+app.MapHub<ChatHub>("/chathub");
 app.UseCors("frontend");
 
 app.Run();

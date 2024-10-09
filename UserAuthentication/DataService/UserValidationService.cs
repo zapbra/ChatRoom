@@ -6,7 +6,7 @@ namespace UserAuthentication.DataService
 {
     public static class UserValidationService
     {
-        private static readonly string EmailPattern = @"^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$";
+        private static readonly Regex validateEmailRegex = new Regex("^[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$");
         private static readonly int MinUsernameLength = 3;
         private static readonly int MaxUsernameLength = 20;
         private static readonly int MinPasswordLength = 8;
@@ -19,7 +19,7 @@ namespace UserAuthentication.DataService
         public static StateMessage IsEmailValid(string email)
         {
             StateMessage stateMessage = new StateMessage { IsValid = true, Message = "" };
-            bool isMatch = Regex.IsMatch(email, EmailPattern);
+            bool isMatch = validateEmailRegex.IsMatch(email);
             if (string.IsNullOrEmpty(email))
             {
                 stateMessage.IsValid = false;
