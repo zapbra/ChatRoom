@@ -21,6 +21,8 @@ namespace UserAuthentication.Controllers
     {
         private readonly AppDbContext _context;
         private readonly ILogger<UsersController> _logger;
+        private readonly string[] cookies = { "user_id", "username", "email", "authenticated", "auth_expiry_time",
+        "user_state_id", "is_email_validated", "email_status_description"};
 
         public UsersController(AppDbContext context, ILogger<UsersController> logger)
         {
@@ -276,7 +278,7 @@ namespace UserAuthentication.Controllers
 
         }
 
-        // POST: api/Users/
+        // POST: api/Users/login
         // UserLoginDto is passed either the email or username based on which the user
         // decides to enter and queries for user that contains that username or email
         [HttpPost("login")]
@@ -328,12 +330,33 @@ namespace UserAuthentication.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "An error occured while logging in");
+                _logger.LogError(ex, "An error occurred while logging in");
                 return StatusCode(StatusCodes.Status500InternalServerError);
 
             }
         }
 
+        // Post: api/Users/logout
+        [HttpPost("logout")]
+        public IActionResult Logout()
+        {
+            try
+            {
+                CookieUtility.DeleteCookies(Response, this.cookies);
+
+
+                return Ok(new { message = "Logged out successfully"});
+            } catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while logging the user out");
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    Status = 500,
+                    Message = "An error occured while logging the user out",
+                    Details = ex.Message
+                });
+            }
+        }
 
         // GET: api/Users/Userlogin/5
         [HttpGet("Userlogin/{id}")]
