@@ -2,11 +2,13 @@
 using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.VisualStudio.Web.CodeGenerators.Mvc.Templates.Blazor;
 using UserAuthentication.DataService;
 using UserAuthentication.DTOs;
 using UserAuthentication.Models;
@@ -287,24 +289,43 @@ namespace UserAuthentication.Controllers
 
             try
             {
-                // find user from database comparing the email and username based on the user entered field
+                // find user from database comparing the email and username based to the Username provided in the DTO
                 var user = await _context.Users
-                    .FirstOrDefaultAsync(u => (u.UserLogin != null && u.UserLogin.Username == userDto.Username)
-                    || (u.UserLogin != null && u.UserLogin.Email == userDto.Email));
+                    .Include(u => u.Role)
+                    .Include(u => u.UserLogin)
+                    .Include(u => u.UserLoginDataExternal)
+                    .Include(u => u.UserState)
+                    .FirstOrDefaultAsync(u => (u.UserLogin != null && 
+                    u.UserLogin.Username == userDto.Username)
+                    || (u.UserLogin != null && 
+                    u.UserLogin.Email == userDto.Username));
 
+                if (user != null)
+                {
+                    var userJson = JsonSerializer.Serialize(user, new JsonSerializerOptions
+                    {
+                        WriteIndented = true,
+                        ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.Preserve
+                    });
+                    _logger.LogError(userJson);
+                }
+                else
+                {
+                    _logger.LogError("User not found.");
+                }
                 // make sure user was actually found
                 if (user == null)
                 {
-                    return NotFound("User not found");
+                    return NotFound(new { Message = "User not found", Details = ""});
                 }
 
                 // hash client pass with salt to compare to fetched user
-                var clientHashedPass = HashAlgorithmUtility.HashPassword($"{userDto.Password}{user?.UserLogin?.PasswordSalt ?? ""}");
-
+                var clientHashedPass = HashAlgorithmUtility.HashPassword($"{userDto.Password}{user?.UserLogin?.PasswordSalt}");
+                
                 // wrong password
                 if (clientHashedPass != user?.UserLogin?.PasswordHash)
                 {
-                    return Unauthorized("Invalid credentials");
+                    return Unauthorized( new { Message = "Invalid credentials", Details = "" });
 
                 }
 
@@ -337,6 +358,7 @@ namespace UserAuthentication.Controllers
         }
 
         // Post: api/Users/logout
+        // At later date add functionality to update user_state on logout
         [HttpPost("logout")]
         public IActionResult Logout()
         {
@@ -345,7 +367,7 @@ namespace UserAuthentication.Controllers
                 CookieUtility.DeleteCookies(Response, this.cookies);
 
 
-                return Ok(new { message = "Logged out successfully"});
+                return Ok(new { Message = "Logged out successfully", Details = ""});
             } catch (Exception ex)
             {
                 _logger.LogError(ex, "An error occurred while logging the user out");
