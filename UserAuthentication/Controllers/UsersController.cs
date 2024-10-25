@@ -67,7 +67,7 @@ namespace UserAuthentication.Controllers
         public async Task<ActionResult<User>> GetUserByUsername(string username)
         {
             var user = await _context.Users
-                .Where(u => u.UserLogin != null && u.UserLogin.Username  == username)
+                .Where(u => u.UserLogin != null && u.UserLogin.Username == username)
                 .SingleOrDefaultAsync();
 
             if (user == null)
@@ -183,7 +183,7 @@ namespace UserAuthentication.Controllers
                     UserValidationService.IsUsernameValid(userDto.Username),
                     UserValidationService.IsPasswordValid(userDto.Password)
                 };
-           
+
 
                 if (!validationMessages.All(message => message.IsValid))
                 {
@@ -284,7 +284,7 @@ namespace UserAuthentication.Controllers
         // UserLoginDto is passed either the email or username based on which the user
         // decides to enter and queries for user that contains that username or email
         [HttpPost("login")]
-        public async Task<ActionResult<User>> Login(UserLoginDto userDto)
+        public async Task<ActionResult<User>> Login(ChatLoginDto userDto)
         {
 
             try
@@ -295,9 +295,9 @@ namespace UserAuthentication.Controllers
                     .Include(u => u.UserLogin)
                     .Include(u => u.UserLoginDataExternal)
                     .Include(u => u.UserState)
-                    .FirstOrDefaultAsync(u => (u.UserLogin != null && 
+                    .FirstOrDefaultAsync(u => (u.UserLogin != null &&
                     u.UserLogin.Username == userDto.Username)
-                    || (u.UserLogin != null && 
+                    || (u.UserLogin != null &&
                     u.UserLogin.Email == userDto.Username));
 
                 if (user != null)
@@ -316,16 +316,16 @@ namespace UserAuthentication.Controllers
                 // make sure user was actually found
                 if (user == null)
                 {
-                    return NotFound(new { Message = "User not found", Details = ""});
+                    return NotFound(new { Message = "User not found", Details = "" });
                 }
 
                 // hash client pass with salt to compare to fetched user
                 var clientHashedPass = HashAlgorithmUtility.HashPassword($"{userDto.Password}{user?.UserLogin?.PasswordSalt}");
-                
+
                 // wrong password
                 if (clientHashedPass != user?.UserLogin?.PasswordHash)
                 {
-                    return Unauthorized( new { Message = "Invalid credentials", Details = "" });
+                    return Unauthorized(new { Message = "Invalid credentials", Details = $"Client hashed pass: {clientHashedPass}, user pass: {user.UserLogin.PasswordHash}" });
 
                 }
 
@@ -367,8 +367,9 @@ namespace UserAuthentication.Controllers
                 CookieUtility.DeleteCookies(Response, this.cookies);
 
 
-                return Ok(new { Message = "Logged out successfully", Details = ""});
-            } catch (Exception ex)
+                return Ok(new { Message = "Logged out successfully", Details = "" });
+            }
+            catch (Exception ex)
             {
                 _logger.LogError(ex, "An error occurred while logging the user out");
                 return StatusCode(StatusCodes.Status500InternalServerError, new

@@ -29,47 +29,51 @@ namespace UserAuthentication.Hubs
 
         }
 
-        public async Task SendGroupMessage(string group, string username, string message)
+        public async Task SendGroupMessage(string groupName, string username, string message)
         {
             _logger.LogInformation($"Received group message from {username}: {message}");
-              try
+            try
             {
-                _logger.LogInformation($"Broadcasting group message to {group} from {username}: {message}");
-                await Clients.Group(group).SendAsync(username, message);
+                _logger.LogInformation($"Broadcasting group message to {groupName} from {username}: {message}");
+                await Clients.Group(groupName).SendAsync("ReceiveMessage", groupName, username, message);
                 _logger.LogInformation("Group message successfully broadcasted");
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error broadcasting group message to {group} from {username}");
+                _logger.LogError(ex, $"Error broadcasting group message to {groupName} from {username}");
             }
         }
 
-        public async Task AddToGroup(string groupName)
+        public async Task AddToGroup(string groupName, string username)
         {
             try
             {
+                _logger.LogInformation($"{username} is attempting to join group: {groupName}");
                 await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
-                await Clients.Group(groupName).SendAsync("ReceiveMessage", $"{Context.ConnectionId} has joined the group {groupName}");
-            
-            } catch (Exception ex)
+                await Clients.Group(groupName).SendAsync("ReceiveMessage", groupName, username, $"{username} has joined the group {groupName}");
+                _logger.LogInformation($"{username} has joined group: {groupName}");
+            } 
+            catch (Exception ex)
             {
                 _logger.LogError(ex, $"Error connecting user to group {groupName}");
             }
-            
-        }           
-        
+
+        }
+
         public async Task RemoveFromGroup(string groupName)
         {
             try
             {
                 await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupName);
                 await Clients.Group(groupName).SendAsync("ReceiveMessage", $"{Context.ConnectionId} has left the group {groupName}");
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
                 _logger.LogError(ex, $"Error removed user from group {groupName}");
             }
         }
-    
+
     }
 
-  
-  }
+
+}

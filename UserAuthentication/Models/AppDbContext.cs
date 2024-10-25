@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using UserAuthentication.Models;
 
 namespace UserAuthentication.Models
 {
@@ -65,6 +66,8 @@ namespace UserAuthentication.Models
         public DbSet<ExternalProvider> ExternalProviders { get; set; } = null!;
 
         public DbSet<UserState> UserStates { get; set; } = null!;
+        public DbSet<UserAuthentication.Models.ChatRoomUser> ChatRoomUser { get; set; } = default!;
+        public DbSet<UserAuthentication.Models.ChatRoom> ChatRoom { get; set; } = default!;
 
         
     }
